@@ -10,7 +10,6 @@ tracker = EuclideanDistTracker()
 cap = cv2.VideoCapture("Resources/traffic4.mp4")
 f = 25
 w = int(1000/(f-1))
-print(w)
 
 
 #Object Detection
@@ -26,6 +25,8 @@ kernal_e = np.ones((5,5),np.uint8)
 
 while True:
     ret,frame = cap.read()
+    if not ret:
+        break
     frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
     height,width,_ = frame.shape
     #print(height,width)
