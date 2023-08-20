@@ -4,7 +4,15 @@ import time
 import numpy as np
 import os
 
+"""
+The below values are specific to the video used
+These values will have to be changed for a different video
+"""
 limit = 80  # km/hr
+start_line = 410  # pixel value to start the timer
+end_line = 235  # pixel value to stop the timer
+buffer = 20  # pixels (recommended 15 - 25 pixels for proper detection)
+
 
 traffic_record_folder_name = "TrafficRecord"
 
@@ -37,6 +45,10 @@ class EuclideanDistTracker:
         self.exceeded = 0
 
     def update(self, objects_rect):
+        """
+        Updates an already existing objects coordinates and
+        assigns a new ID to a new detected object
+        """
         objects_bbs_ids = []
 
         # Get center point of new object
@@ -57,16 +69,16 @@ class EuclideanDistTracker:
                     same_object_detected = True
 
                     # START TIMER
-                    if (y >= 410 and y <= 430):
+                    if start_line <= y <= start_line + buffer:
                         self.s1[0, id] = time.time()
 
                     # STOP TIMER and FIND DIFFERENCE
-                    if (y >= 235 and y <= 255):
+                    if end_line <= y <= end_line + buffer:
                         self.s2[0, id] = time.time()
                         self.s[0, id] = self.s2[0, id] - self.s1[0, id]
 
                     # CAPTURE FLAG
-                    if (y < 235):
+                    if y < 235:
                         self.f[id] = 1
 
             # NEW OBJECT DETECTION
@@ -89,8 +101,13 @@ class EuclideanDistTracker:
         return objects_bbs_ids
 
     # SPEEED FUNCTION
-    def getsp(self, id):
-        if (self.s[0, id] != 0):
+    def getsp(self, id: int):
+        """
+        Speed is calculated based on the time taken for vehicle to cross
+        a segment of road.
+        the constant 214.15 depends on the video
+        """
+        if self.s[0, id] != 0:
             s = 214.15 / self.s[0, id]
         else:
             s = 0
@@ -99,7 +116,10 @@ class EuclideanDistTracker:
 
     # SAVE VEHICLE DATA
     def capture(self, img, x, y, h, w, sp, id):
-        if (self.capf[id] == 0):
+        """
+        Image of a vehicle with its recorded speed is stored in a file
+        """
+        if self.capf[id] == 0:
             self.capf[id] = 1
             self.f[id] = 0
             crop_img = img[y - 5:y + h + 5, x - 5:x + w + 5]
@@ -108,7 +128,7 @@ class EuclideanDistTracker:
             cv2.imwrite(file, crop_img)
             self.count += 1
             filet = open(speed_record_file_location, "a")
-            if (sp > limit):
+            if sp > limit:
                 file2 = traffic_record_folder_name + '//exceeded//' + n + '.jpg'
                 cv2.imwrite(file2, crop_img)
                 filet.write(str(id) + " \t " + str(sp) + "<---exceeded\n")
@@ -123,6 +143,11 @@ class EuclideanDistTracker:
 
     # TEXT FILE SUMMARY
     def end(self):
+        """
+        At the end of the video, a summary of vehicles and their speeds are displayed
+        in a text file
+        :return:
+        """
         file = open(speed_record_file_location, "a")
         file.write("\n-------------\n")
         file.write("-------------\n")
